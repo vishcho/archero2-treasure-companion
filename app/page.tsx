@@ -284,7 +284,35 @@ export default function Home() {
   // 渲染寶藏圖案預覽（在網格中顯示）：依 shape 矩形正確渲染，圖片為帶透明圖層的矩形
   const renderTreasureInGrid = (piece: TreasurePiece, cellRow: number, cellCol: number) => {
     if (!piece.position) return null;
-    if (piece.position.row !== cellRow || piece.position.col !== cellCol) return null;
+
+    // 獲取物件的 occupied 形狀
+    const occupiedShape = getOccupiedShape(piece.type, piece.rotation);
+
+    // 找到物件實際佔據的第一個格子（從左上角開始）
+    let firstOccupiedRow = -1;
+    let firstOccupiedCol = -1;
+    for (let r = 0; r < occupiedShape.length; r++) {
+      for (let c = 0; c < occupiedShape[r].length; c++) {
+        if (occupiedShape[r][c] === 1) {
+          firstOccupiedRow = r;
+          firstOccupiedCol = c;
+          break;
+        }
+      }
+      if (firstOccupiedRow !== -1) break;
+    }
+
+    // 如果找不到佔據的格子，不渲染
+    if (firstOccupiedRow === -1 || firstOccupiedCol === -1) return null;
+
+    // 計算第一個佔據格子的實際位置
+    const firstOccupiedActualRow = piece.position.row + firstOccupiedRow;
+    const firstOccupiedActualCol = piece.position.col + firstOccupiedCol;
+
+    // 只在第一個佔據的格子上渲染
+    if (cellRow !== firstOccupiedActualRow || cellCol !== firstOccupiedActualCol) {
+      return null;
+    }
 
     const shape = getRenderShape(piece.type, piece.rotation);
     const rows = shape.length;
@@ -293,12 +321,16 @@ export default function Home() {
     const cellSize = '100%';
     const gapSize = '0.25rem';
 
+    // 計算偏移量，讓圖片從第一個佔據的格子開始顯示
+    const offsetLeft = `calc(-${firstOccupiedCol} * ${cellSize} - ${firstOccupiedCol} * ${gapSize})`;
+    const offsetTop = `calc(-${firstOccupiedRow} * ${cellSize} - ${firstOccupiedRow} * ${gapSize})`;
+
     return (
       <div
         className="absolute z-10 pointer-events-none overflow-hidden"
         style={{
-          left: 0,
-          top: 0,
+          left: offsetLeft,
+          top: offsetTop,
           width: `calc(${cols} * ${cellSize} + ${cols - 1} * ${gapSize})`,
           height: `calc(${rows} * ${cellSize} + ${rows - 1} * ${gapSize})`,
         }}
