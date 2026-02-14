@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { basePath } from './_utils/utils';
+import { rotateShape } from '@/lib/rotate-shape';
 
 // 定義寶藏圖案的類型
 type TreasureType = 'chest' | 'anchor' | 'dice' | 'sword' | 'crown' | 'cross' | 'key';
@@ -116,28 +117,7 @@ const treasureNames: Record<TreasureType, string> = {
   key: '鑰匙',
 };
 
-// 旋轉矩陣
-function rotateShape(shape: number[][], rotation: number): number[][] {
-  if (rotation === 0) return shape;
-
-  let rotated = shape;
-  for (let i = 0; i < rotation / 90; i++) {
-    const rows = rotated.length;
-    const cols = rotated[0].length;
-    const newShape: number[][] = [];
-
-    for (let col = 0; col < cols; col++) {
-      const newRow: number[] = [];
-      for (let row = rows - 1; row >= 0; row--) {
-        newRow.push(rotated[row][col]);
-      }
-      newShape.push(newRow);
-    }
-    rotated = newShape;
-  }
-
-  return rotated;
-}
+// rotateShape 函數已移至 @/lib/rotate-shape
 
 function getOccupiedShape(type: TreasureType, rotation: number): number[][] {
   return rotateShape(treasureShapes[type].occupied, rotation);
@@ -348,11 +328,15 @@ export default function Home() {
 
   // 渲染寶藏圖案預覽（在右側面板顯示模板，依 shape 矩形正確渲染）
   const renderTreasurePreview = (template: TreasureTemplate) => {
-    const shape = getRenderShape(template.type, template.rotation);
-    const rows = shape.length;
-    const cols = shape[0].length;
+    // 獲取原始形狀（未旋轉）來計算固定尺寸
+    const originalShape = treasureShapes[template.type].shape;
+    const originalRows = originalShape.length;
+    const originalCols = originalShape[0].length;
+
     const imagePath = treasureImages[template.type];
-    const size = Math.max(rows, cols) * 24;
+
+    // 使用原始尺寸的最大值來保持一致的容器大小
+    const size = Math.max(originalRows, originalCols) * 24;
 
     return (
       <div
@@ -367,16 +351,16 @@ export default function Home() {
         <div
           className="relative"
           style={{
-            width: `${cols * 24}px`,
-            height: `${rows * 24}px`,
+            width: `${originalCols * 24}px`,
+            height: `${originalRows * 24}px`,
           }}
         >
           {imagePath ? (
             <Image
               src={imagePath}
               alt={treasureNames[template.type]}
-              width={cols * 24}
-              height={rows * 24}
+              width={originalCols * 24}
+              height={originalRows * 24}
               className="object-contain"
               style={{
                 transform: `rotate(${template.rotation}deg)`,
